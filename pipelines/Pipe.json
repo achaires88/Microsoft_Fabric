@@ -1,0 +1,834 @@
+{
+    "name": "PL_XTRACT_DATA_ADLS_001",
+    "objectId": "6f80457f-b7d4-43fa-86bc-c6c3b9acbfda",
+    "properties": {
+        "activities": [
+            {
+                "name": "CP_XTRACT_CSV",
+                "type": "Copy",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "DelimitedTextSource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "recursive": true,
+                            "enablePartitionDiscovery": false
+                        },
+                        "formatSettings": {
+                            "type": "DelimitedTextReadSettings",
+                            "skipLineCount": 0
+                        },
+                        "datasetSettings": {
+                            "annotations": [],
+                            "type": "DelimitedText",
+                            "typeProperties": {
+                                "location": {
+                                    "type": "AzureBlobFSLocation",
+                                    "folderPath": "raw_data",
+                                    "fileSystem": "realstate"
+                                },
+                                "columnDelimiter": ",",
+                                "rowDelimiter": "\n",
+                                "escapeChar": "\\",
+                                "firstRowAsHeader": true,
+                                "quoteChar": "\""
+                            },
+                            "schema": [],
+                            "externalReferences": {
+                                "connection": "fb762f03-8463-4802-830b-3cb55030cca5"
+                            }
+                        }
+                    },
+                    "sink": {
+                        "type": "DelimitedTextSink",
+                        "storeSettings": {
+                            "type": "LakehouseWriteSettings"
+                        },
+                        "formatSettings": {
+                            "type": "DelimitedTextWriteSettings",
+                            "fileExtension": ".csv"
+                        },
+                        "datasetSettings": {
+                            "annotations": [],
+                            "linkedService": {
+                                "name": "LKH_BRICKVISTA_001_MC",
+                                "properties": {
+                                    "annotations": [],
+                                    "type": "Lakehouse",
+                                    "typeProperties": {
+                                        "workspaceId": "a25d3567-f874-4d11-b9d2-fe489e7b19ca",
+                                        "artifactId": "506aa2d7-a37c-4ddd-80b2-dfd687fe903a",
+                                        "rootFolder": "Files"
+                                    }
+                                }
+                            },
+                            "type": "DelimitedText",
+                            "typeProperties": {
+                                "location": {
+                                    "type": "LakehouseLocation",
+                                    "folderPath": "raw"
+                                },
+                                "columnDelimiter": ",",
+                                "escapeChar": "\\",
+                                "firstRowAsHeader": true,
+                                "quoteChar": "\""
+                            },
+                            "schema": []
+                        }
+                    },
+                    "enableStaging": false,
+                    "translator": {
+                        "type": "TabularTranslator",
+                        "typeConversion": true,
+                        "typeConversionSettings": {
+                            "allowDataTruncation": true,
+                            "treatBooleanAsNumber": false
+                        }
+                    }
+                }
+            },
+            {
+                "name": "ForEach_8jz",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "NB_CREATE_GOLD_LHK",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "items": {
+                        "value": "@pipeline().parameters.cw_items_8jz",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "CP_TABLES_DWH_001",
+                            "type": "Copy",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "typeProperties": {
+                                "source": {
+                                    "type": "LakehouseTableSource",
+                                    "datasetSettings": {
+                                        "annotations": [],
+                                        "linkedService": {
+                                            "name": "LKH_BRICKVISTA_001_MC",
+                                            "properties": {
+                                                "annotations": [],
+                                                "type": "Lakehouse",
+                                                "typeProperties": {
+                                                    "workspaceId": "a25d3567-f874-4d11-b9d2-fe489e7b19ca",
+                                                    "artifactId": "506aa2d7-a37c-4ddd-80b2-dfd687fe903a",
+                                                    "rootFolder": "Tables"
+                                                }
+                                            }
+                                        },
+                                        "type": "LakehouseTable",
+                                        "schema": [],
+                                        "typeProperties": {
+                                            "schema": "gold",
+                                            "table": {
+                                                "value": "@item().source.table",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    }
+                                },
+                                "sink": {
+                                    "type": "DataWarehouseSink",
+                                    "allowCopyCommand": true,
+                                    "tableOption": "autoCreate",
+                                    "datasetSettings": {
+                                        "annotations": [],
+                                        "linkedService": {
+                                            "name": "DWH_BRICK_VISTA",
+                                            "properties": {
+                                                "annotations": [],
+                                                "type": "DataWarehouse",
+                                                "typeProperties": {
+                                                    "endpoint": "baop34nx3fluzjgpeh6yuqtaxm-m42v3itu7aiu3oos7zej46yzzi.datawarehouse.fabric.microsoft.com",
+                                                    "artifactId": "3ad7fe11-e7d6-41f1-bbce-3ea3396b5bc2",
+                                                    "workspaceId": "a25d3567-f874-4d11-b9d2-fe489e7b19ca"
+                                                }
+                                            }
+                                        },
+                                        "type": "DataWarehouseTable",
+                                        "schema": [],
+                                        "typeProperties": {
+                                            "schema": "dbo",
+                                            "table": {
+                                                "value": "@item().destination.table",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    }
+                                },
+                                "enableStaging": true,
+                                "translator": {
+                                    "value": "@item().copyActivity.translator",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "NB_CREATE_BRONZE_LHK",
+                "type": "TridentNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "CP_XTRACT_CSV",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "notebookId": "46724a6d-e052-4707-a100-1845df75068b",
+                    "workspaceId": "a25d3567-f874-4d11-b9d2-fe489e7b19ca"
+                }
+            },
+            {
+                "name": "NB_CREATE_SILVER_LHK",
+                "type": "TridentNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "NB_CREATE_BRONZE_LHK",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "notebookId": "dc4c5962-7093-4680-a091-0f92e630e1dc",
+                    "workspaceId": "a25d3567-f874-4d11-b9d2-fe489e7b19ca"
+                }
+            },
+            {
+                "name": "NB_CREATE_GOLD_LHK",
+                "type": "TridentNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "NB_CREATE_SILVER_LHK",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "notebookId": "7c73154f-fca9-45d6-8071-92b95dc75dc3",
+                    "workspaceId": "a25d3567-f874-4d11-b9d2-fe489e7b19ca"
+                }
+            }
+        ],
+        "parameters": {
+            "cw_items_8jz": {
+                "type": "Array",
+                "defaultValue": [
+                    {
+                        "source": {
+                            "table": "dim_brokers"
+                        },
+                        "destination": {
+                            "table": "dim_brokers"
+                        },
+                        "copyActivity": {
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "mappings": [
+                                    {
+                                        "source": {
+                                            "name": "BrokerID",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "BrokerID",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "BrokerName",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "BrokerName",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "Region",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "Region",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "Email",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "Email",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "source": {
+                            "table": "dim_campaigns"
+                        },
+                        "destination": {
+                            "table": "dim_campaigns"
+                        },
+                        "copyActivity": {
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "mappings": [
+                                    {
+                                        "source": {
+                                            "name": "CampaignID",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "CampaignID",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "CampaignName",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "CampaignName",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "Channel",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "Channel",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "Budget",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "Budget",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "StartDate",
+                                            "type": "Date",
+                                            "physicalType": "date"
+                                        },
+                                        "sink": {
+                                            "name": "StartDate",
+                                            "physicalType": "date"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "EndDate",
+                                            "type": "Date",
+                                            "physicalType": "date"
+                                        },
+                                        "sink": {
+                                            "name": "EndDate",
+                                            "physicalType": "date"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "DaysBetweenCampaign",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "DaysBetweenCampaign",
+                                            "physicalType": "int"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "source": {
+                            "table": "dim_clients"
+                        },
+                        "destination": {
+                            "table": "dim_clients"
+                        },
+                        "copyActivity": {
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "mappings": [
+                                    {
+                                        "source": {
+                                            "name": "ClientID",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "ClientID",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "FirstName",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "FirstName",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "LastName",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "LastName",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "Email",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "Email",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "Region",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "Region",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "source": {
+                            "table": "dim_projects"
+                        },
+                        "destination": {
+                            "table": "dim_projects"
+                        },
+                        "copyActivity": {
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "mappings": [
+                                    {
+                                        "source": {
+                                            "name": "ProjectID",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "ProjectID",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "ProjectName",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "ProjectName",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "City",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "City",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "Region",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "Region",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "LaunchYear",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "LaunchYear",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "Status",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "Status",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "source": {
+                            "table": "dim_properties"
+                        },
+                        "destination": {
+                            "table": "dim_properties"
+                        },
+                        "copyActivity": {
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "mappings": [
+                                    {
+                                        "source": {
+                                            "name": "PropertyID",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "PropertyID",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "ProjectID",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "ProjectID",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "PropertyType",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "PropertyType",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "Size_m2",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "Size_m2",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "Bedrooms",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "Bedrooms",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "Bathrooms",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "Bathrooms",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "AvailabilityStatus",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "AvailabilityStatus",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "source": {
+                            "table": "fact_leads"
+                        },
+                        "destination": {
+                            "table": "fact_leads"
+                        },
+                        "copyActivity": {
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "mappings": [
+                                    {
+                                        "source": {
+                                            "name": "LeadID",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "LeadID",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "ClientID",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "ClientID",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "PropertyID",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "PropertyID",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "CampaignID",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "CampaignID",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "LeadDate",
+                                            "type": "Date",
+                                            "physicalType": "date"
+                                        },
+                                        "sink": {
+                                            "name": "LeadDate",
+                                            "physicalType": "date"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "LeadSource",
+                                            "type": "String",
+                                            "physicalType": "string"
+                                        },
+                                        "sink": {
+                                            "name": "LeadSource",
+                                            "physicalType": "varchar",
+                                            "length": "8000"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "source": {
+                            "table": "fact_sales"
+                        },
+                        "destination": {
+                            "table": "fact_sales"
+                        },
+                        "copyActivity": {
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "mappings": [
+                                    {
+                                        "source": {
+                                            "name": "SaleID",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "SaleID",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "ClientID",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "ClientID",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "BrokerID",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "BrokerID",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "SaleDate",
+                                            "type": "Date",
+                                            "physicalType": "date"
+                                        },
+                                        "sink": {
+                                            "name": "SaleDate",
+                                            "physicalType": "date"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "SalePriceUSD",
+                                            "type": "Int32",
+                                            "physicalType": "integer"
+                                        },
+                                        "sink": {
+                                            "name": "SalePriceUSD",
+                                            "physicalType": "int"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "lastModifiedByObjectId": "74083abf-32bf-4eab-8a81-400d08051e16",
+        "lastPublishTime": "2025-07-05T15:53:59Z"
+    }
+}
